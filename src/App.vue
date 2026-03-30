@@ -54,12 +54,12 @@
             <span class="json-viewer__title">datasheet.json</span>
           </div>
           <div class="json-lines">
-            <div v-for="(line, index) in jsonPreviewLines" :key="`${index}-${line.indent}`" class="json-line">
+            <div v-for="(line, index) in jsonPreviewLines" :key="index" class="json-line">
               <span class="json-line__number">{{ index + 1 }}</span>
               <span class="json-line__content" :style="{ paddingLeft: `${line.indent * 20}px` }">
                 <span
                   v-for="(piece, pieceIndex) in line.pieces"
-                  :key="`${index}-${pieceIndex}-${piece.text}`"
+                  :key="`${index}-${pieceIndex}`"
                   :class="['json-token', `json-token--${piece.type}`]"
                 >
                   {{ piece.text }}
