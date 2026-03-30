@@ -344,6 +344,7 @@ h1 {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(360px, 1fr);
   gap: 20px;
+  align-items: start;
 }
 
 @media (max-width: 900px) {
