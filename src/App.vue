@@ -72,6 +72,7 @@ const INITIAL: DataSheetJson = {
     ['Samsung T7 SSD', 'Storage', '89', '150', '4.8'],
   ],
 }
+const HINT_SEPARATOR = ' • '
 
 const dataSheet = ref<DataSheetJson>({ ...INITIAL, values: INITIAL.values.map((r) => [...r]) })
 const selectedTableImplementation = ref<'jspreadsheet' | 'agGrid'>('jspreadsheet')
@@ -98,7 +99,7 @@ const tableDescriptions = {
   },
 } as const
 const currentTable = computed(() => tableDescriptions[selectedTableImplementation.value])
-const formattedTableHints = computed(() => currentTable.value.hints.join(' • '))
+const formattedTableHints = computed(() => currentTable.value.hints.join(HINT_SEPARATOR))
 
 function resetData() {
   dataSheet.value = { ...INITIAL, values: INITIAL.values.map((r) => [...r]) }
