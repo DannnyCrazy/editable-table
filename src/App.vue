@@ -46,7 +46,28 @@
 
       <aside class="json-preview preview-panel">
         <h2>Live <code>DataSheetJson</code> model</h2>
-        <pre>{{ JSON.stringify(dataSheet, null, 2) }}</pre>
+        <div class="json-viewer" aria-label="Live DataSheetJson model">
+          <div class="json-viewer__toolbar">
+            <span class="json-viewer__dot"></span>
+            <span class="json-viewer__dot"></span>
+            <span class="json-viewer__dot"></span>
+            <span class="json-viewer__title">datasheet.json</span>
+          </div>
+          <div class="json-lines">
+            <div v-for="(line, index) in jsonPreviewLines" :key="index" class="json-line">
+              <span class="json-line__number">{{ index + 1 }}</span>
+              <span class="json-line__content" :style="{ paddingLeft: `${line.indent * 20}px` }">
+                <span
+                  v-for="(piece, pieceIndex) in line.pieces"
+                  :key="`${index}-${pieceIndex}`"
+                  :class="['json-token', `json-token--${piece.type}`]"
+                >
+                  {{ piece.text }}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
       </aside>
     </div>
   </div>
@@ -74,6 +95,15 @@ const INITIAL: DataSheetJson = {
 }
 const HINT_SEPARATOR = ' • '
 
+type JsonTokenType = 'brace' | 'key' | 'string' | 'punctuation'
+type JsonPreviewLine = {
+  indent: number
+  pieces: Array<{
+    text: string
+    type: JsonTokenType
+  }>
+}
+
 const dataSheet = ref<DataSheetJson>({ ...INITIAL, values: INITIAL.values.map((r) => [...r]) })
 const selectedTableImplementation = ref<'jspreadsheet' | 'agGrid'>('jspreadsheet')
 const tableDescriptions = {
@@ -100,6 +130,102 @@ const tableDescriptions = {
 } as const
 const currentTable = computed(() => tableDescriptions[selectedTableImplementation.value])
 const formattedTableHints = computed(() => currentTable.value.hints.join(HINT_SEPARATOR))
+const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
+  const quoted = (value: string) => JSON.stringify(value)
+  const lines: JsonPreviewLine[] = [
+    { indent: 0, pieces: [{ text: '{', type: 'brace' }] },
+    {
+      indent: 1,
+      pieces: [
+        { text: '"type"', type: 'key' },
+        { text: ': ', type: 'punctuation' },
+        { text: quoted(dataSheet.value.type), type: 'string' },
+        { text: ',', type: 'punctuation' },
+      ],
+    },
+    {
+      indent: 1,
+      pieces: [
+        { text: '"id"', type: 'key' },
+        { text: ': ', type: 'punctuation' },
+        { text: quoted(dataSheet.value.id), type: 'string' },
+        { text: ',', type: 'punctuation' },
+      ],
+    },
+    {
+      indent: 1,
+      pieces: [
+        { text: '"names"', type: 'key' },
+        { text: ': [', type: 'punctuation' },
+      ],
+    },
+  ]
+
+  dataSheet.value.names.forEach((name, index) => {
+    lines.push({
+      indent: 2,
+      pieces: [
+        { text: quoted(name), type: 'string' },
+        {
+          text: index < dataSheet.value.names.length - 1 ? ',' : '',
+          type: 'punctuation',
+        },
+      ],
+    })
+  })
+
+  lines.push({
+    indent: 1,
+    pieces: [
+      { text: '],', type: 'punctuation' },
+    ],
+  })
+  lines.push({
+    indent: 1,
+    pieces: [
+      { text: '"values"', type: 'key' },
+      { text: ': [', type: 'punctuation' },
+    ],
+  })
+
+  dataSheet.value.values.forEach((row, rowIndex) => {
+    lines.push({
+      indent: 2,
+      pieces: [{ text: '[', type: 'brace' }],
+    })
+
+    row.forEach((cell, cellIndex) => {
+      lines.push({
+        indent: 3,
+        pieces: [
+          { text: quoted(cell), type: 'string' },
+          { text: cellIndex < row.length - 1 ? ',' : '', type: 'punctuation' },
+        ],
+      })
+    })
+
+    lines.push({
+      indent: 2,
+      pieces: [
+        {
+          text: rowIndex < dataSheet.value.values.length - 1 ? '],' : ']',
+          type: 'punctuation',
+        },
+      ],
+    })
+  })
+
+  lines.push({
+    indent: 1,
+    pieces: [{ text: ']', type: 'punctuation' }],
+  })
+  lines.push({
+    indent: 0,
+    pieces: [{ text: '}', type: 'brace' }],
+  })
+
+  return lines
+})
 
 function resetData() {
   dataSheet.value = { ...INITIAL, values: INITIAL.values.map((r) => [...r]) }
@@ -139,9 +265,9 @@ body {
 
 <style scoped>
 .app {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 24px 16px;
+  width: 100%;
+  min-height: 100svh;
+  padding: 24px;
 }
 
 .app-header {
@@ -216,8 +342,9 @@ h1 {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  grid-template-columns: minmax(0, 1.7fr) minmax(360px, 1fr);
   gap: 20px;
+  align-items: start;
 }
 
 @media (max-width: 900px) {
@@ -271,7 +398,7 @@ h1 {
 }
 
 .json-preview {
-  background: #1e1e2e;
+  background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
   color: #cdd6f4;
   border-radius: 10px;
   padding: 20px;
@@ -288,11 +415,84 @@ h1 {
   font-size: 1.1rem;
 }
 
-pre {
-  margin: 0;
+.json-viewer {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.65);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.json-viewer__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(30, 41, 59, 0.7);
+}
+
+.json-viewer__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+.json-viewer__dot:nth-child(2) {
+  background: #22c55e;
+}
+
+.json-viewer__dot:nth-child(3) {
+  background: #38bdf8;
+}
+
+.json-viewer__title {
+  margin-left: 6px;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.json-lines {
+  padding: 12px 0;
+}
+
+.json-line {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-height: 1.6rem;
+  padding: 0 14px;
+}
+
+.json-line__number {
+  color: rgba(148, 163, 184, 0.7);
+  text-align: right;
+  user-select: none;
+}
+
+.json-line__content {
+  display: block;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.82rem;
   line-height: 1.5;
-  white-space: pre;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.json-token--brace,
+.json-token--punctuation {
+  color: #94a3b8;
+}
+
+.json-token--key {
+  color: #7dd3fc;
+}
+
+.json-token--string {
+  color: #86efac;
 }
 </style>

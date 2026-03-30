@@ -16,6 +16,8 @@ const model = defineModel<DataSheetJson>({ required: true })
 // ── Template refs ────────────────────────────────────────────────────────────
 const containerRef = ref<HTMLDivElement | null>(null)
 let worksheets: WorksheetInstance[] | null = null
+let applyingModelToSheet = false
+let internalModelUpdateCount = 0
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function buildColumns(names: string[]): WorksheetOptions['columns'] {
@@ -30,28 +32,62 @@ function getWs(): WorksheetInstance | null {
   return worksheets ? worksheets[0] : null
 }
 
-/** Read the current state from jspreadsheet and push it into the model */
-function syncToModel() {
+function buildWorksheetData({ names, values }: Pick<DataSheetJson, 'names' | 'values'>) {
+  return values.length ? values.map((row) => [...row]) : [Array(names.length).fill('')]
+}
+
+function areStringArraysEqual(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index])
+}
+
+function areMatrixesEqual(left: string[][], right: string[][]) {
+  return (
+    left.length === right.length &&
+    left.every((row, rowIndex) => areStringArraysEqual(row, right[rowIndex] ?? []))
+  )
+}
+
+function areSheetStatesEqual(
+  left: Pick<DataSheetJson, 'names' | 'values'>,
+  right: Pick<DataSheetJson, 'names' | 'values'>,
+) {
+  return areStringArraysEqual(left.names, right.names) && areMatrixesEqual(left.values, right.values)
+}
+
+function readWorksheetState(): Pick<DataSheetJson, 'names' | 'values'> | null {
   const ws = getWs()
-  if (!ws) return
+  if (!ws) return null
   const names = (ws.getHeaders(true) as string[]).map((h) => (h == null ? '' : String(h)))
   const raw = ws.getData() as string[][]
   const values = raw.map((row) => row.map((cell) => (cell == null ? '' : String(cell))))
-  model.value = { ...model.value, names, values }
+  return { names, values }
 }
 
-// ── Lifecycle ────────────────────────────────────────────────────────────────
-onMounted(() => {
-  if (!containerRef.value) return
+function updateModel(next: DataSheetJson) {
+  if (areSheetStatesEqual(model.value, next)) return
+  internalModelUpdateCount += 1
+  model.value = next
+  queueMicrotask(() => {
+    internalModelUpdateCount = Math.max(0, internalModelUpdateCount - 1)
+  })
+}
 
-  const { names, values } = model.value
-  const data = values.length ? values.map((row) => [...row]) : [Array(names.length).fill('')]
+/** Read the current state from jspreadsheet and push it into the model */
+function syncToModel() {
+  if (applyingModelToSheet) return
+  const sheetState = readWorksheetState()
+  if (!sheetState) return
+  updateModel({ ...model.value, ...sheetState })
+}
+
+function createWorksheet(sheet: DataSheetJson) {
+  if (!containerRef.value) return
 
   worksheets = jspreadsheet(containerRef.value, {
     worksheets: [
       {
-        data,
-        columns: buildColumns(names),
+        data: buildWorksheetData(sheet),
+        columns: buildColumns(sheet.names),
         allowRenameColumn: true,
         columnDrag: true,
       },
@@ -60,35 +96,47 @@ onMounted(() => {
       syncToModel()
     },
     onchangeheader(_ws, colIndex, newValue) {
+      if (applyingModelToSheet) return
       const names = [...model.value.names]
-      names[colIndex] = newValue
-      model.value = { ...model.value, names }
+      names[colIndex] = newValue == null ? '' : String(newValue)
+      updateModel({ ...model.value, names })
     },
     onmovecolumn(_ws, oldPos, newPos) {
+      if (applyingModelToSheet) return
       const names = [...model.value.names]
       const [moved] = names.splice(oldPos, 1)
-      names.splice(newPos, 0, moved)
+      names.splice(newPos, 0, moved ?? '')
 
       const values = model.value.values.map((row) => {
-        const r = [...row]
-        const [cell] = r.splice(oldPos, 1)
-        r.splice(newPos, 0, cell)
-        return r
+        const reorderedRow = [...row]
+        const [cell] = reorderedRow.splice(oldPos, 1)
+        reorderedRow.splice(newPos, 0, cell ?? '')
+        return reorderedRow
       })
 
-      model.value = { ...model.value, names, values }
+      updateModel({ ...model.value, names, values })
     },
     onpaste() {
       syncToModel()
     },
   })
-})
+}
 
-onBeforeUnmount(() => {
+function destroyWorksheet() {
   if (containerRef.value) {
     jspreadsheet.destroy(containerRef.value as any)
   }
   worksheets = null
+}
+
+// ── Lifecycle ────────────────────────────────────────────────────────────────
+onMounted(() => {
+  if (!containerRef.value) return
+  createWorksheet(model.value)
+})
+
+onBeforeUnmount(() => {
+  destroyWorksheet()
 })
 
 // ── Watch external model changes ─────────────────────────────────────────────
@@ -97,14 +145,31 @@ onBeforeUnmount(() => {
 watch(
   () => model.value,
   (next) => {
+    if (internalModelUpdateCount > 0) return
     const ws = getWs()
     if (!ws) return
 
-    ws.setData(next.values.length ? next.values : [Array(next.names.length).fill('')])
+    const current = readWorksheetState()
+    if (current && areSheetStatesEqual(current, next)) return
 
-    next.names.forEach((name, i) => {
-      ws.setHeader(i, name)
-    })
+    applyingModelToSheet = true
+    try {
+      if (!current || current.names.length !== next.names.length) {
+        destroyWorksheet()
+        createWorksheet(next)
+        return
+      }
+
+      ws.setData(buildWorksheetData(next))
+
+      next.names.forEach((name, i) => {
+        if (current.names[i] !== name) {
+          ws.setHeader(i, name)
+        }
+      })
+    } finally {
+      applyingModelToSheet = false
+    }
   },
   { deep: false },
 )
