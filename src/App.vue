@@ -3,11 +3,9 @@
     <header class="app-header">
       <h1>Editable Table – Debug Page</h1>
       <p class="subtitle">
-        Two implementations side by side:
-        <strong>Jspreadsheet CE v5</strong> (left) and
-        <strong>AG Grid Enterprise</strong> (right).
-        Both components share the same <code>DataSheetJson</code> model –
-        any edit in one is instantly reflected in the other.
+        Choose the table implementation shown on the left and inspect the live
+        <code>DataSheetJson</code> model on the right. Any edit in the table is
+        reflected in the preview immediately.
       </p>
     </header>
 
@@ -15,46 +13,47 @@
       <button @click="resetData">↺ Reset data</button>
       <button @click="addRow">＋ Add row</button>
       <button @click="addColumn">＋ Add column</button>
+      <div class="table-switcher" aria-label="Table implementation switcher">
+        <span class="switcher-label">Table view</span>
+        <button
+          :class="{ active: selectedTableImplementation === 'jspreadsheet' }"
+          @click="selectedTableImplementation = 'jspreadsheet'"
+        >
+          Jspreadsheet CE
+        </button>
+        <button
+          :class="{ active: selectedTableImplementation === 'agGrid' }"
+          @click="selectedTableImplementation = 'agGrid'"
+        >
+          AG Grid
+        </button>
+      </div>
     </section>
 
-    <div class="grids">
-      <!-- ── Jspreadsheet CE ─────────────────────────────────────────── -->
-      <div class="grid-panel">
-        <h2>Jspreadsheet CE v5</h2>
-        <p class="hint">
-          • Double-click a cell to edit &nbsp;|&nbsp;
-          • Drag column headers to reorder &nbsp;|&nbsp;
-          • Double-click a header to rename it &nbsp;|&nbsp;
-          • Select a range and Ctrl+C/V to copy/paste &nbsp;|&nbsp;
-          • Drag the fill handle (bottom-right of selection) to autofill
-        </p>
-        <JspreadsheetTable v-model="dataSheet" />
-      </div>
+    <div class="workspace">
+      <section
+        class="grid-panel table-panel"
+        :class="{ 'ag-panel': selectedTableImplementation === 'agGrid' }"
+      >
+        <h2>{{ currentTable.title }}</h2>
+        <p class="hint">{{ formattedTableHints }}</p>
+        <JspreadsheetTable
+          v-if="selectedTableImplementation === 'jspreadsheet'"
+          v-model="dataSheet"
+        />
+        <AgGridTable v-else v-model="dataSheet" />
+      </section>
 
-      <!-- ── AG Grid Enterprise ─────────────────────────────────────── -->
-      <div class="grid-panel ag-panel">
-        <h2>AG Grid Enterprise</h2>
-        <p class="hint">
-          • Click a cell to edit &nbsp;|&nbsp;
-          • Drag column headers to reorder &nbsp;|&nbsp;
-          • Double-click a header to rename it &nbsp;|&nbsp;
-          • Select a range with Ctrl+Shift+click, then Ctrl+C/V &nbsp;|&nbsp;
-          • Drag the fill handle (bottom-right of selection) to autofill
-        </p>
-        <AgGridTable v-model="dataSheet" />
-      </div>
+      <aside class="json-preview preview-panel">
+        <h2>Live <code>DataSheetJson</code> model</h2>
+        <pre>{{ JSON.stringify(dataSheet, null, 2) }}</pre>
+      </aside>
     </div>
-
-    <!-- ── Live JSON preview ──────────────────────────────────────────── -->
-    <section class="json-preview">
-      <h2>Live <code>DataSheetJson</code> model</h2>
-      <pre>{{ JSON.stringify(dataSheet, null, 2) }}</pre>
-    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import JspreadsheetTable from './components/JspreadsheetTable.vue'
 import AgGridTable from './components/AgGridTable.vue'
 import type { DataSheetJson } from './types'
@@ -75,6 +74,31 @@ const INITIAL: DataSheetJson = {
 }
 
 const dataSheet = ref<DataSheetJson>({ ...INITIAL, values: INITIAL.values.map((r) => [...r]) })
+const selectedTableImplementation = ref<'jspreadsheet' | 'agGrid'>('jspreadsheet')
+const tableDescriptions = {
+  jspreadsheet: {
+    title: 'Jspreadsheet CE v5',
+    hints: [
+      'Double-click a cell to edit',
+      'Drag column headers to reorder',
+      'Double-click a header to rename it',
+      'Select a range and Ctrl+C/V to copy/paste',
+      'Drag the fill handle (bottom-right of selection) to autofill',
+    ],
+  },
+  agGrid: {
+    title: 'AG Grid Enterprise',
+    hints: [
+      'Click a cell to edit',
+      'Drag column headers to reorder',
+      'Double-click a header to rename it',
+      'Select a range with Ctrl+Shift+click, then Ctrl+C/V',
+      'Drag the fill handle (bottom-right of selection) to autofill',
+    ],
+  },
+} as const
+const currentTable = computed(() => tableDescriptions[selectedTableImplementation.value])
+const formattedTableHints = computed(() => currentTable.value.hints.join(' • '))
 
 function resetData() {
   dataSheet.value = { ...INITIAL, values: INITIAL.values.map((r) => [...r]) }
@@ -137,7 +161,9 @@ h1 {
 
 .controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
+  align-items: center;
   margin-bottom: 20px;
 }
 
@@ -156,15 +182,55 @@ h1 {
   background: #0d47a1;
 }
 
-.grids {
+.table-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding: 6px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.switcher-label {
+  font-size: 0.85rem;
+  color: #555;
+  padding: 0 6px 0 8px;
+}
+
+.table-switcher button {
+  background: transparent;
+  color: #1565c0;
+}
+
+.table-switcher button:hover {
+  background: rgba(21, 101, 192, 0.1);
+}
+
+.table-switcher button.active {
+  background: #1565c0;
+  color: #fff;
+}
+
+.workspace {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
   gap: 20px;
-  margin-bottom: 24px;
 }
 
 @media (max-width: 900px) {
-  .grids {
+  .table-switcher {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  .switcher-label {
+    padding-right: 0;
+  }
+
+  .workspace {
     grid-template-columns: 1fr;
   }
 }
@@ -199,12 +265,20 @@ h1 {
   height: 380px;
 }
 
+.table-panel {
+  min-width: 0;
+}
+
 .json-preview {
   background: #1e1e2e;
   color: #cdd6f4;
   border-radius: 10px;
   padding: 20px;
   overflow: auto;
+}
+
+.preview-panel {
+  min-height: 420px;
 }
 
 .json-preview h2 {
