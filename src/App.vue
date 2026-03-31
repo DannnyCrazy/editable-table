@@ -4,8 +4,8 @@
       <h1>Editable Table – Debug Page</h1>
       <p class="subtitle">
         Choose the table implementation shown on the left and inspect the live
-        <code>DataSheetJson</code> model on the right. Any edit in the table is
-        reflected in the preview immediately.
+        <code>DataSheetJson</code>
+        model on the right. Any edit in the table is reflected in the preview immediately.
       </p>
     </header>
 
@@ -31,21 +31,19 @@
     </section>
 
     <div class="workspace">
-      <section
-        class="grid-panel table-panel"
-        :class="{ 'ag-panel': selectedTableImplementation === 'agGrid' }"
-      >
+      <section class="grid-panel table-panel" :class="{ 'ag-panel': selectedTableImplementation === 'agGrid' }">
         <h2>{{ currentTable.title }}</h2>
         <p class="hint">{{ formattedTableHints }}</p>
-        <JspreadsheetTable
-          v-if="selectedTableImplementation === 'jspreadsheet'"
-          v-model="dataSheet"
-        />
+        <JspreadsheetTable v-if="selectedTableImplementation === 'jspreadsheet'" v-model="dataSheet" />
         <AgGridTable v-else v-model="dataSheet" />
       </section>
 
       <aside class="json-preview preview-panel">
-        <h2>Live <code>DataSheetJson</code> model</h2>
+        <h2>
+          Live
+          <code>DataSheetJson</code>
+          model
+        </h2>
         <div class="json-viewer" aria-label="Live DataSheetJson model">
           <div class="json-viewer__toolbar">
             <span class="json-viewer__dot"></span>
@@ -90,8 +88,8 @@ const INITIAL: DataSheetJson = {
     ['Sony WH-1000XM5', 'Headphones', '349', '80', '4.9'],
     ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
     ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
-    ['Samsung T7 SSD', 'Storage', '89', '150', '4.8'],
-  ],
+    ['Samsung T7 SSD', 'Storage', '89', '150', '4.8']
+  ]
 }
 const HINT_SEPARATOR = ' • '
 
@@ -114,8 +112,8 @@ const tableDescriptions = {
       'Drag column headers to reorder',
       'Double-click a header to rename it',
       'Select a range and Ctrl+C/V to copy/paste',
-      'Drag the fill handle (bottom-right of selection) to autofill',
-    ],
+      'Drag the fill handle (bottom-right of selection) to autofill'
+    ]
   },
   agGrid: {
     title: 'AG Grid Enterprise',
@@ -124,9 +122,9 @@ const tableDescriptions = {
       'Drag column headers to reorder',
       'Double-click a header to rename it',
       'Select a range with Ctrl+Shift+click, then Ctrl+C/V',
-      'Drag the fill handle (bottom-right of selection) to autofill',
-    ],
-  },
+      'Drag the fill handle (bottom-right of selection) to autofill'
+    ]
+  }
 } as const
 const currentTable = computed(() => tableDescriptions[selectedTableImplementation.value])
 const formattedTableHints = computed(() => currentTable.value.hints.join(HINT_SEPARATOR))
@@ -140,8 +138,8 @@ const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
         { text: '"type"', type: 'key' },
         { text: ': ', type: 'punctuation' },
         { text: quoted(dataSheet.value.type), type: 'string' },
-        { text: ',', type: 'punctuation' },
-      ],
+        { text: ',', type: 'punctuation' }
+      ]
     },
     {
       indent: 1,
@@ -149,16 +147,16 @@ const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
         { text: '"id"', type: 'key' },
         { text: ': ', type: 'punctuation' },
         { text: quoted(dataSheet.value.id), type: 'string' },
-        { text: ',', type: 'punctuation' },
-      ],
+        { text: ',', type: 'punctuation' }
+      ]
     },
     {
       indent: 1,
       pieces: [
         { text: '"names"', type: 'key' },
-        { text: ': [', type: 'punctuation' },
-      ],
-    },
+        { text: ': [', type: 'punctuation' }
+      ]
+    }
   ]
 
   dataSheet.value.names.forEach((name, index) => {
@@ -168,30 +166,28 @@ const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
         { text: quoted(name), type: 'string' },
         {
           text: index < dataSheet.value.names.length - 1 ? ',' : '',
-          type: 'punctuation',
-        },
-      ],
+          type: 'punctuation'
+        }
+      ]
     })
   })
 
   lines.push({
     indent: 1,
-    pieces: [
-      { text: '],', type: 'punctuation' },
-    ],
+    pieces: [{ text: '],', type: 'punctuation' }]
   })
   lines.push({
     indent: 1,
     pieces: [
       { text: '"values"', type: 'key' },
-      { text: ': [', type: 'punctuation' },
-    ],
+      { text: ': [', type: 'punctuation' }
+    ]
   })
 
   dataSheet.value.values.forEach((row, rowIndex) => {
     lines.push({
       indent: 2,
-      pieces: [{ text: '[', type: 'brace' }],
+      pieces: [{ text: '[', type: 'brace' }]
     })
 
     row.forEach((cell, cellIndex) => {
@@ -199,8 +195,8 @@ const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
         indent: 3,
         pieces: [
           { text: quoted(cell), type: 'string' },
-          { text: cellIndex < row.length - 1 ? ',' : '', type: 'punctuation' },
-        ],
+          { text: cellIndex < row.length - 1 ? ',' : '', type: 'punctuation' }
+        ]
       })
     })
 
@@ -209,19 +205,19 @@ const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
       pieces: [
         {
           text: rowIndex < dataSheet.value.values.length - 1 ? '],' : ']',
-          type: 'punctuation',
-        },
-      ],
+          type: 'punctuation'
+        }
+      ]
     })
   })
 
   lines.push({
     indent: 1,
-    pieces: [{ text: ']', type: 'punctuation' }],
+    pieces: [{ text: ']', type: 'punctuation' }]
   })
   lines.push({
     indent: 0,
-    pieces: [{ text: '}', type: 'brace' }],
+    pieces: [{ text: '}', type: 'brace' }]
   })
 
   return lines
@@ -234,7 +230,7 @@ function resetData() {
 function addRow() {
   dataSheet.value = {
     ...dataSheet.value,
-    values: [...dataSheet.value.values, Array(dataSheet.value.names.length).fill('')],
+    values: [...dataSheet.value.values, Array(dataSheet.value.names.length).fill('')]
   }
 }
 
@@ -243,7 +239,7 @@ function addColumn() {
   dataSheet.value = {
     ...dataSheet.value,
     names: [...dataSheet.value.names, newColName],
-    values: dataSheet.value.values.map((row) => [...row, '']),
+    values: dataSheet.value.values.map((row) => [...row, ''])
   }
 }
 </script>
@@ -266,12 +262,17 @@ body {
 <style scoped>
 .app {
   width: 100%;
-  min-height: 100svh;
+  height: 100svh;
+  max-height: 100svh;
   padding: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .app-header {
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 h1 {
@@ -292,6 +293,7 @@ h1 {
   gap: 10px;
   align-items: center;
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 .controls button {
@@ -344,7 +346,10 @@ h1 {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(360px, 1fr);
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 900px) {
@@ -368,7 +373,7 @@ h1 {
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   padding: 16px;
-  overflow: visible;
+  min-height: 0;
 }
 
 .grid-panel h2 {
@@ -395,6 +400,7 @@ h1 {
 
 .table-panel {
   min-width: 0;
+  overflow: auto;
 }
 
 .json-preview {
@@ -402,11 +408,12 @@ h1 {
   color: #cdd6f4;
   border-radius: 10px;
   padding: 20px;
+  min-height: 0;
   overflow: auto;
 }
 
 .preview-panel {
-  min-height: 420px;
+  min-height: 0;
 }
 
 .json-preview h2 {
