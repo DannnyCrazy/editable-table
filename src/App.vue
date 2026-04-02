@@ -32,8 +32,8 @@
 
     <div class="workspace">
       <section class="grid-panel table-panel" :class="{ 'ag-panel': selectedTableImplementation === 'agGrid' }">
-        <h2>{{ currentTable.title }}</h2>
-        <p class="hint">{{ formattedTableHints }}</p>
+        <!-- <h2>{{ currentTable.title }}</h2>
+        <p class="hint">{{ formattedTableHints }}</p> -->
         <JspreadsheetTable v-if="selectedTableImplementation === 'jspreadsheet'" v-model="dataSheet" />
         <AgGridTable v-else v-model="dataSheet" />
       </section>
@@ -91,7 +91,6 @@ const INITIAL: DataSheetJson = {
     ['Samsung T7 SSD', 'Storage', '89', '150', '4.8']
   ]
 }
-const HINT_SEPARATOR = ' • '
 
 type JsonTokenType = 'brace' | 'key' | 'string' | 'punctuation'
 type JsonPreviewLine = {
@@ -104,30 +103,6 @@ type JsonPreviewLine = {
 
 const dataSheet = ref<DataSheetJson>({ ...INITIAL, values: INITIAL.values.map((r) => [...r]) })
 const selectedTableImplementation = ref<'jspreadsheet' | 'agGrid'>('jspreadsheet')
-const tableDescriptions = {
-  jspreadsheet: {
-    title: 'Jspreadsheet CE v5',
-    hints: [
-      'Double-click a cell to edit',
-      'Drag column headers to reorder',
-      'Double-click a header to rename it',
-      'Select a range and Ctrl+C/V to copy/paste',
-      'Drag the fill handle (bottom-right of selection) to autofill'
-    ]
-  },
-  agGrid: {
-    title: 'AG Grid Enterprise',
-    hints: [
-      'Click a cell to edit',
-      'Drag column headers to reorder',
-      'Double-click a header to rename it',
-      'Select a range with Ctrl+Shift+click, then Ctrl+C/V',
-      'Drag the fill handle (bottom-right of selection) to autofill'
-    ]
-  }
-} as const
-const currentTable = computed(() => tableDescriptions[selectedTableImplementation.value])
-const formattedTableHints = computed(() => currentTable.value.hints.join(HINT_SEPARATOR))
 const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
   const quoted = (value: string) => JSON.stringify(value)
   const lines: JsonPreviewLine[] = [

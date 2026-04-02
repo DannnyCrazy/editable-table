@@ -5,7 +5,14 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import jspreadsheet from 'jspreadsheet-ce'
-import type { ContextMenuItem, ContextMenuRole, WorksheetInstance, WorksheetOptions } from 'jspreadsheet-ce'
+import type {
+  CellValue,
+  Column,
+  ContextMenuItem,
+  ContextMenuRole,
+  WorksheetInstance,
+  WorksheetOptions
+} from 'jspreadsheet-ce'
 import type { DataSheetJson } from '../types'
 
 const JSS_ZH_CN_DICTIONARY = {
@@ -37,11 +44,85 @@ let worksheets: WorksheetInstance[] | null = null
 let applyingModelToSheet = false
 let internalModelUpdateCount = 0
 
+type CellValidationLevel = 'warning'
+
+type CellValidationContext = {
+  colIndex: number
+  rowIndex: number
+  columnName: string
+}
+
+type CellValidationRule = {
+  id: string
+  level: CellValidationLevel
+  validate: (value: string, context: CellValidationContext) => boolean
+}
+
+const NUMERIC_VALUE_PATTERN = /^[+-]?(?:\d+\.?\d*|\.\d+)$/
+
+const CELL_VALIDATION_RULES: CellValidationRule[] = [
+  // {
+  //   id: 'warn-if-number',
+  //   level: 'warning',
+  //   validate: (value) => value.trim() !== '' && NUMERIC_VALUE_PATTERN.test(value.trim())
+  // }
+]
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
+function normalizeCellValue(value: CellValue | null | undefined) {
+  return value == null ? '' : String(value)
+}
+
+function resolveCellValidationLevel(value: string, context: CellValidationContext): CellValidationLevel | null {
+  const matchedRule = CELL_VALIDATION_RULES.find((rule) => rule.validate(value, context))
+  return matchedRule?.level ?? null
+}
+
+function applyCellValidationState(
+  cell: HTMLTableCellElement,
+  value: CellValue | null | undefined,
+  x: number,
+  y: number,
+  instance: WorksheetInstance
+) {
+  const validationLevel = resolveCellValidationLevel(normalizeCellValue(value), {
+    colIndex: x,
+    rowIndex: y,
+    columnName: String(instance.getHeader(x) ?? '')
+  })
+
+  cell.classList.toggle('jss-cell-warning', validationLevel === 'warning')
+
+  if (validationLevel) {
+    cell.dataset.validationLevel = validationLevel
+  } else {
+    delete cell.dataset.validationLevel
+  }
+}
+
+function refreshValidationStyles(instance: WorksheetInstance | null) {
+  if (!instance) return
+
+  instance.records.forEach((row) => {
+    row.forEach((record) => {
+      applyCellValidationState(
+        record.element,
+        instance.getValueFromCoords(record.x, record.y),
+        record.x,
+        record.y,
+        instance
+      )
+    })
+  })
+}
+
 function buildColumns(names: string[]): WorksheetOptions['columns'] {
   return names.map((name) => ({
     title: name,
     type: 'text' as const,
+    render(cell, value, x, y, instance, _options: Column) {
+      applyCellValidationState(cell, value, x, y, instance)
+    },
     width: 120
   }))
 }
@@ -112,8 +193,8 @@ function readWorksheetState(): Pick<DataSheetJson, 'names' | 'values'> | null {
   const ws = getWs()
   if (!ws) return null
   const names = (ws.getHeaders(true) as string[]).map((h) => (h == null ? '' : String(h)))
-  const raw = ws.getData() as string[][]
-  const values = raw.map((row) => row.map((cell) => (cell == null ? '' : String(cell))))
+  const raw = ws.getData() as CellValue[][]
+  const values = raw.map((row) => row.map((cell) => normalizeCellValue(cell)))
   return { names, values }
 }
 
@@ -151,6 +232,9 @@ function createWorksheet(sheet: DataSheetJson) {
         columnSorting: false
       }
     ],
+    onafterchanges(instance) {
+      refreshValidationStyles(instance)
+    },
     onchange() {
       syncToModel()
     },
@@ -158,6 +242,7 @@ function createWorksheet(sheet: DataSheetJson) {
       if (applyingModelToSheet) return
       const names = [...model.value.names]
       names[colIndex] = newValue == null ? '' : String(newValue)
+      refreshValidationStyles(getWs())
       updateModel({ ...model.value, names })
     },
     onmovecolumn(_ws, oldPos, newPos) {
@@ -173,12 +258,16 @@ function createWorksheet(sheet: DataSheetJson) {
         return reorderedRow
       })
 
+      refreshValidationStyles(getWs())
       updateModel({ ...model.value, names, values })
     },
     onpaste() {
+      refreshValidationStyles(getWs())
       syncToModel()
     }
   })
+
+  refreshValidationStyles(getWs())
 }
 
 function destroyWorksheet() {
@@ -227,6 +316,8 @@ watch(
           ws.setHeader(i, name)
         }
       })
+
+      refreshValidationStyles(ws)
     } finally {
       applyingModelToSheet = false
     }
@@ -248,5 +339,11 @@ watch(
 :deep(.jcontextmenu > div a),
 :deep(.jcontextmenu > div span) {
   font-size: 14px;
+}
+
+:deep(td.jss-cell-warning) {
+  background: linear-gradient(180deg, rgba(255, 247, 225, 0.95) 0%, rgba(255, 252, 243, 0.95) 100%);
+  box-shadow: inset 3px 0 0 #d98a00;
+  color: #5f3a00;
 }
 </style>
