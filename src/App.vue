@@ -75,6 +75,7 @@
 import { computed, ref } from 'vue'
 import JspreadsheetTable from './components/JspreadsheetTable.vue'
 import AgGridTable from './components/AgGridTable.vue'
+import { sanitizeDataSheetRows } from './normalizeDataSheet'
 import type { DataSheetJson } from './types'
 
 // ── Initial demo data ────────────────────────────────────────────────────────
@@ -101,7 +102,12 @@ type JsonPreviewLine = {
   }>
 }
 
-const dataSheet = ref<DataSheetJson>({ ...INITIAL, values: INITIAL.values.map((r) => [...r]) })
+const dataSheet = ref<DataSheetJson>(
+  sanitizeDataSheetRows({
+    ...INITIAL,
+    values: INITIAL.values.map((row) => [...row])
+  })
+)
 const selectedTableImplementation = ref<'jspreadsheet' | 'agGrid'>('jspreadsheet')
 const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
   const quoted = (value: string) => JSON.stringify(value)
@@ -199,7 +205,10 @@ const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
 })
 
 function resetData() {
-  dataSheet.value = { ...INITIAL, values: INITIAL.values.map((r) => [...r]) }
+  dataSheet.value = sanitizeDataSheetRows({
+    ...INITIAL,
+    values: INITIAL.values.map((row) => [...row])
+  })
 }
 
 function addRow() {

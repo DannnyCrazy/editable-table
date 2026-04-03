@@ -13,6 +13,7 @@ import type {
   WorksheetInstance,
   WorksheetOptions
 } from 'jspreadsheet-ce'
+import { removeEmptyRows, sanitizeDataSheetRows } from '../normalizeDataSheet'
 import type { DataSheetJson } from '../types'
 
 const JSS_ZH_CN_DICTIONARY = {
@@ -57,8 +58,6 @@ type CellValidationRule = {
   level: CellValidationLevel
   validate: (value: string, context: CellValidationContext) => boolean
 }
-
-const NUMERIC_VALUE_PATTERN = /^[+-]?(?:\d+\.?\d*|\.\d+)$/
 
 const CELL_VALIDATION_RULES: CellValidationRule[] = [
   // {
@@ -132,7 +131,8 @@ function getWs(): WorksheetInstance | null {
 }
 
 function buildWorksheetData({ names, values }: Pick<DataSheetJson, 'names' | 'values'>) {
-  return values.length ? values.map((row) => [...row]) : [Array(names.length).fill('')]
+  const normalizedValues = removeEmptyRows(values, names.length)
+  return normalizedValues.length ? normalizedValues.map((row) => [...row]) : [Array(names.length).fill('')]
 }
 
 function ensureChineseDictionary() {
@@ -199,9 +199,10 @@ function readWorksheetState(): Pick<DataSheetJson, 'names' | 'values'> | null {
 }
 
 function updateModel(next: DataSheetJson) {
-  if (areSheetStatesEqual(model.value, next)) return
+  const sanitizedNext = sanitizeDataSheetRows(next)
+  if (areSheetStatesEqual(model.value, sanitizedNext)) return
   internalModelUpdateCount += 1
-  model.value = next
+  model.value = sanitizedNext
   queueMicrotask(() => {
     internalModelUpdateCount = Math.max(0, internalModelUpdateCount - 1)
   })
@@ -218,14 +219,16 @@ function syncToModel() {
 function createWorksheet(sheet: DataSheetJson) {
   if (!containerRef.value) return
 
+  const sanitizedSheet = sanitizeDataSheetRows(sheet)
+
   worksheets = jspreadsheet(containerRef.value, {
     about: false,
     allowExport: false,
     contextMenu: buildContextMenu,
     worksheets: [
       {
-        data: buildWorksheetData(sheet),
-        columns: buildColumns(sheet.names),
+        data: buildWorksheetData(sanitizedSheet),
+        columns: buildColumns(sanitizedSheet.names),
         allowComments: false,
         allowRenameColumn: false,
         columnDrag: true,
@@ -297,21 +300,22 @@ watch(
     if (internalModelUpdateCount > 0) return
     const ws = getWs()
     if (!ws) return
+    const sanitizedNext = sanitizeDataSheetRows(next)
 
     const current = readWorksheetState()
-    if (current && areSheetStatesEqual(current, next)) return
+    if (current && areSheetStatesEqual(current, sanitizedNext)) return
 
     applyingModelToSheet = true
     try {
-      if (!current || current.names.length !== next.names.length) {
+      if (!current || current.names.length !== sanitizedNext.names.length) {
         destroyWorksheet()
-        createWorksheet(next)
+        createWorksheet(sanitizedNext)
         return
       }
 
-      ws.setData(buildWorksheetData(next))
+      ws.setData(buildWorksheetData(sanitizedNext))
 
-      next.names.forEach((name, i) => {
+      sanitizedNext.names.forEach((name, i) => {
         if (current.names[i] !== name) {
           ws.setHeader(i, name)
         }

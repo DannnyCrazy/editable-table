@@ -24,19 +24,10 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { AgGridVue } from 'ag-grid-vue3'
-import {
-  AllEnterpriseModule,
-  LicenseManager,
-  themeQuartz,
-} from 'ag-grid-enterprise'
-import type {
-  GridApi,
-  ColDef,
-  GridReadyEvent,
-  CellValueChangedEvent,
-  ColumnMovedEvent,
-} from 'ag-grid-community'
+import { AllEnterpriseModule, LicenseManager, themeQuartz } from 'ag-grid-enterprise'
+import type { GridApi, ColDef, GridReadyEvent, CellValueChangedEvent, ColumnMovedEvent } from 'ag-grid-community'
 import EditableHeaderRenderer from './EditableHeaderRenderer.vue'
+import { areRowMatrixesEqual, sanitizeDataSheetRows } from '../normalizeDataSheet'
 import type { DataSheetJson } from '../types'
 
 // Suppress watermark by providing an empty key (trial mode for demo purposes)
@@ -58,8 +49,8 @@ const modules = [AllEnterpriseModule]
 // ── Cell selection (range + fill handle) ────────────────────────────────────
 const cellSelectionOptions = {
   handle: {
-    mode: 'fill' as const,
-  },
+    mode: 'fill' as const
+  }
 }
 
 // ── Column / row data ────────────────────────────────────────────────────────
@@ -71,7 +62,7 @@ const defaultColDef: ColDef = {
   resizable: true,
   sortable: false,
   minWidth: 80,
-  flex: 1,
+  flex: 1
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -95,15 +86,13 @@ function buildColDefs(names: string[]): ColDef[] {
         model.value = { ...model.value, names }
         // Refresh column defs to update displayed header name
         columnDefs.value = buildColDefs(names)
-      },
-    },
+      }
+    }
   }))
 }
 
 function buildRowData(names: string[], values: string[][]): Record<string, string>[] {
-  return values.map((row) =>
-    Object.fromEntries(names.map((_name, i) => [`col_${i}`, row[i] ?? ''])),
-  )
+  return values.map((row) => Object.fromEntries(names.map((_name, i) => [`col_${i}`, row[i] ?? ''])))
 }
 
 function readGridData(): string[][] {
@@ -141,9 +130,7 @@ function onColumnMoved(event: ColumnMovedEvent) {
 
   const oldNames = model.value.names
   const newNames = permutation.map((idx) => oldNames[idx] ?? '')
-  const newValues = model.value.values.map((row) =>
-    permutation.map((idx) => row[idx] ?? ''),
-  )
+  const newValues = model.value.values.map((row) => permutation.map((idx) => row[idx] ?? ''))
 
   // Rebuild colDefs to match new order (re-assign col_0..N to display order)
   const rebuildDefs = buildColDefs(newNames)
@@ -154,8 +141,14 @@ function onColumnMoved(event: ColumnMovedEvent) {
 
 // ── Sync model → grid ────────────────────────────────────────────────────────
 function refreshGrid() {
-  columnDefs.value = buildColDefs(model.value.names)
-  rowData.value = buildRowData(model.value.names, model.value.values)
+  const sanitizedSheet = sanitizeDataSheetRows(model.value)
+  if (!areRowMatrixesEqual(sanitizedSheet.values, model.value.values)) {
+    model.value = sanitizedSheet
+    return
+  }
+
+  columnDefs.value = buildColDefs(sanitizedSheet.names)
+  rowData.value = buildRowData(sanitizedSheet.names, sanitizedSheet.values)
 }
 
 watch(
@@ -163,7 +156,7 @@ watch(
   () => {
     refreshGrid()
   },
-  { deep: false },
+  { deep: false }
 )
 </script>
 
