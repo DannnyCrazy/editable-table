@@ -40,9 +40,8 @@
 
       <aside class="json-preview preview-panel">
         <h2>
-          Live
           <code>DataSheetJson</code>
-          model
+          Live model
         </h2>
         <div class="json-viewer" aria-label="Live DataSheetJson model">
           <div class="json-viewer__toolbar">
@@ -87,6 +86,32 @@ const INITIAL: DataSheetJson = {
     ['Apple MacBook Pro', 'Laptop', '2499', '12', '4.8'],
     ['Dell XPS 15', 'Laptop', '1899', '25', '4.6'],
     ['Sony WH-1000XM5', 'Headphones', '349', '80', '4.9'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
+    ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
+    ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
     ['LG 27" 4K Monitor', 'Monitor', '699', '40', '4.7'],
     ['Logitech MX Keys', 'Keyboard', '109', '200', '4.5'],
     ['Samsung T7 SSD', 'Storage', '89', '150', '4.8']
@@ -353,6 +378,7 @@ h1 {
 }
 
 .grid-panel {
+  overflow: hidden;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
@@ -384,7 +410,13 @@ h1 {
 
 .table-panel {
   min-width: 0;
-  overflow: auto;
+  display: flex;
+  overflow: hidden;
+}
+
+.table-panel > * {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .json-preview {

@@ -232,7 +232,10 @@ function createWorksheet(sheet: DataSheetJson) {
         allowComments: false,
         allowRenameColumn: false,
         columnDrag: true,
-        columnSorting: false
+        columnSorting: false,
+        tableOverflow: true,
+        tableHeight: '100%',
+        tableWidth: '100%'
       }
     ],
     onafterchanges(instance) {
@@ -333,7 +336,25 @@ watch(
 <style scoped>
 .jspreadsheet-wrapper {
   width: 100%;
-  overflow: auto;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:deep(.jss_container) {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+:deep(.jtabs-content) {
+  height: 100%;
+}
+
+:deep(.jss_content) {
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
 }
 
 :deep(.jss_contextmenu),
