@@ -72,11 +72,13 @@ function normalizeCellValue(value: CellValue | null | undefined) {
   return value == null ? '' : String(value)
 }
 
+// 判断是否命中校验规则
 function resolveCellValidationLevel(value: string, context: CellValidationContext): CellValidationLevel | null {
   const matchedRule = CELL_VALIDATION_RULES.find((rule) => rule.validate(value, context))
   return matchedRule?.level ?? null
 }
 
+// 校验功能 切换校验效果
 function applyCellValidationState(
   cell: HTMLTableCellElement,
   value: CellValue | null | undefined,
@@ -99,6 +101,7 @@ function applyCellValidationState(
   }
 }
 
+// 批量刷新校验效果
 function refreshValidationStyles(instance: WorksheetInstance | null) {
   if (!instance) return
 
@@ -115,6 +118,7 @@ function refreshValidationStyles(instance: WorksheetInstance | null) {
   })
 }
 
+// 定义列配置
 function buildColumns(names: string[]): WorksheetOptions['columns'] {
   return names.map((name) => ({
     title: name,
@@ -126,21 +130,23 @@ function buildColumns(names: string[]): WorksheetOptions['columns'] {
   }))
 }
 
-function getWs(): WorksheetInstance | null {
-  return worksheets ? worksheets[0] : null
-}
-
+// 定义表格数据初始化逻辑，去除末尾空行
 function buildWorksheetData({ names, values }: Pick<DataSheetJson, 'names' | 'values'>) {
   const normalizedValues = removeEmptyRows(values, names.length)
   return normalizedValues.length ? normalizedValues.map((row) => [...row]) : [Array(names.length).fill('')]
 }
+function getWs(): WorksheetInstance | null {
+  return worksheets ? worksheets[0] : null
+}
 
+// 注册中文词典
 function ensureChineseDictionary() {
   if (dictionaryRegistered) return
   jspreadsheet.setDictionary(JSS_ZH_CN_DICTIONARY)
   dictionaryRegistered = true
 }
 
+// 定制右键菜单
 function buildContextMenu(
   instance: WorksheetInstance,
   columnIndex: string | number | null,
@@ -273,7 +279,8 @@ function createWorksheet(sheet: DataSheetJson) {
     }
   })
 
-  refreshValidationStyles(getWs())
+  // 校验
+  // refreshValidationStyles(getWs())
 }
 
 function destroyWorksheet() {
