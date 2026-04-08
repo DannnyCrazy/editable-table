@@ -119,8 +119,8 @@ function refreshValidationStyles(instance: WorksheetInstance | null) {
 }
 
 // 定义列配置
-function buildColumns(names: string[]): WorksheetOptions['columns'] {
-  return names.map((name) => ({
+function buildColumns(columns: string[]): WorksheetOptions['columns'] {
+  return columns.map((name) => ({
     title: name,
     type: 'text' as const,
     render(cell, value, x, y, instance, _options: Column) {
@@ -131,9 +131,9 @@ function buildColumns(names: string[]): WorksheetOptions['columns'] {
 }
 
 // 定义表格数据初始化逻辑，去除末尾空行
-function buildWorksheetData({ names, values }: Pick<DataSheetJson, 'names' | 'values'>) {
-  const normalizedValues = removeEmptyRows(values, names.length)
-  return normalizedValues.length ? normalizedValues.map((row) => [...row]) : [Array(names.length).fill('')]
+function buildWorksheetData({ columns, rows }: Pick<DataSheetJson, 'columns' | 'rows'>) {
+  const normalizedRows = removeEmptyRows(rows, columns.length)
+  return normalizedRows.length ? normalizedRows.map((row) => [...row]) : [Array(columns.length).fill('')]
 }
 function getWs(): WorksheetInstance | null {
   return worksheets ? worksheets[0] : null
@@ -189,19 +189,19 @@ function areMatrixesEqual(left: string[][], right: string[][]) {
 }
 
 function areSheetStatesEqual(
-  left: Pick<DataSheetJson, 'names' | 'values'>,
-  right: Pick<DataSheetJson, 'names' | 'values'>
+  left: Pick<DataSheetJson, 'columns' | 'rows'>,
+  right: Pick<DataSheetJson, 'columns' | 'rows'>
 ) {
-  return areStringArraysEqual(left.names, right.names) && areMatrixesEqual(left.values, right.values)
+  return areStringArraysEqual(left.columns, right.columns) && areMatrixesEqual(left.rows, right.rows)
 }
 
-function readWorksheetState(): Pick<DataSheetJson, 'names' | 'values'> | null {
+function readWorksheetState(): Pick<DataSheetJson, 'columns' | 'rows'> | null {
   const ws = getWs()
   if (!ws) return null
-  const names = (ws.getHeaders(true) as string[]).map((h) => (h == null ? '' : String(h)))
+  const columns = (ws.getHeaders(true) as string[]).map((h) => (h == null ? '' : String(h)))
   const raw = ws.getData() as CellValue[][]
-  const values = raw.map((row) => row.map((cell) => normalizeCellValue(cell)))
-  return { names, values }
+  const rows = raw.map((row) => row.map((cell) => normalizeCellValue(cell)))
+  return { columns, rows }
 }
 
 function updateModel(next: DataSheetJson) {
@@ -234,7 +234,7 @@ function createWorksheet(sheet: DataSheetJson) {
     worksheets: [
       {
         data: buildWorksheetData(sanitizedSheet),
-        columns: buildColumns(sanitizedSheet.names),
+        columns: buildColumns(sanitizedSheet.columns),
         allowComments: false,
         allowRenameColumn: false,
         columnDrag: true,
@@ -252,18 +252,18 @@ function createWorksheet(sheet: DataSheetJson) {
     },
     onchangeheader(_ws, colIndex, newValue) {
       if (applyingModelToSheet) return
-      const names = [...model.value.names]
-      names[colIndex] = newValue == null ? '' : String(newValue)
+      const columns = [...model.value.columns]
+      columns[colIndex] = newValue == null ? '' : String(newValue)
       refreshValidationStyles(getWs())
-      updateModel({ ...model.value, names })
+      updateModel({ ...model.value, columns })
     },
     onmovecolumn(_ws, oldPos, newPos) {
       if (applyingModelToSheet) return
-      const names = [...model.value.names]
-      const [moved] = names.splice(oldPos, 1)
-      names.splice(newPos, 0, moved ?? '')
+      const columns = [...model.value.columns]
+      const [moved] = columns.splice(oldPos, 1)
+      columns.splice(newPos, 0, moved ?? '')
 
-      const values = model.value.values.map((row) => {
+      const rows = model.value.rows.map((row) => {
         const reorderedRow = [...row]
         const [cell] = reorderedRow.splice(oldPos, 1)
         reorderedRow.splice(newPos, 0, cell ?? '')
@@ -271,7 +271,7 @@ function createWorksheet(sheet: DataSheetJson) {
       })
 
       refreshValidationStyles(getWs())
-      updateModel({ ...model.value, names, values })
+      updateModel({ ...model.value, columns, rows })
     },
     onpaste() {
       refreshValidationStyles(getWs())
@@ -317,7 +317,7 @@ watch(
 
     applyingModelToSheet = true
     try {
-      if (!current || current.names.length !== sanitizedNext.names.length) {
+      if (!current || current.columns.length !== sanitizedNext.columns.length) {
         destroyWorksheet()
         createWorksheet(sanitizedNext)
         return
@@ -325,8 +325,8 @@ watch(
 
       ws.setData(buildWorksheetData(sanitizedNext))
 
-      sanitizedNext.names.forEach((name, i) => {
-        if (current.names[i] !== name) {
+      sanitizedNext.columns.forEach((name, i) => {
+        if (current.columns[i] !== name) {
           ws.setHeader(i, name)
         }
       })

@@ -81,8 +81,8 @@ import type { DataSheetJson } from './types'
 const INITIAL: DataSheetJson = {
   type: 'dataSheet',
   id: 'demo-1',
-  names: ['Product', 'Category', 'Price', 'Stock', 'Rating'],
-  values: [
+  columns: ['Product', 'Category', 'Price', 'Stock', 'Rating'],
+  rows: [
     ['Apple MacBook Pro', 'Laptop', '2499', '12', '4.8'],
     ['Dell XPS 15', 'Laptop', '1899', '25', '4.6'],
     ['Sony WH-1000XM5', 'Headphones', '349', '80', '4.9'],
@@ -130,7 +130,7 @@ type JsonPreviewLine = {
 const dataSheet = ref<DataSheetJson>(
   sanitizeDataSheetRows({
     ...INITIAL,
-    values: INITIAL.values.map((row) => [...row])
+    rows: INITIAL.rows.map((row) => [...row])
   })
 )
 const selectedTableImplementation = ref<'jspreadsheet' | 'agGrid'>('jspreadsheet')
@@ -159,19 +159,19 @@ const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
     {
       indent: 1,
       pieces: [
-        { text: '"names"', type: 'key' },
+        { text: '"columns"', type: 'key' },
         { text: ': [', type: 'punctuation' }
       ]
     }
   ]
 
-  dataSheet.value.names.forEach((name, index) => {
+  dataSheet.value.columns.forEach((name, index) => {
     lines.push({
       indent: 2,
       pieces: [
         { text: quoted(name), type: 'string' },
         {
-          text: index < dataSheet.value.names.length - 1 ? ',' : '',
+          text: index < dataSheet.value.columns.length - 1 ? ',' : '',
           type: 'punctuation'
         }
       ]
@@ -185,12 +185,12 @@ const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
   lines.push({
     indent: 1,
     pieces: [
-      { text: '"values"', type: 'key' },
+      { text: '"rows"', type: 'key' },
       { text: ': [', type: 'punctuation' }
     ]
   })
 
-  dataSheet.value.values.forEach((row, rowIndex) => {
+  dataSheet.value.rows.forEach((row, rowIndex) => {
     lines.push({
       indent: 2,
       pieces: [{ text: '[', type: 'brace' }]
@@ -210,7 +210,7 @@ const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
       indent: 2,
       pieces: [
         {
-          text: rowIndex < dataSheet.value.values.length - 1 ? '],' : ']',
+          text: rowIndex < dataSheet.value.rows.length - 1 ? '],' : ']',
           type: 'punctuation'
         }
       ]
@@ -232,23 +232,23 @@ const jsonPreviewLines = computed<JsonPreviewLine[]>(() => {
 function resetData() {
   dataSheet.value = sanitizeDataSheetRows({
     ...INITIAL,
-    values: INITIAL.values.map((row) => [...row])
+    rows: INITIAL.rows.map((row) => [...row])
   })
 }
 
 function addRow() {
   dataSheet.value = {
     ...dataSheet.value,
-    values: [...dataSheet.value.values, Array(dataSheet.value.names.length).fill('')]
+    rows: [...dataSheet.value.rows, Array(dataSheet.value.columns.length).fill('')]
   }
 }
 
 function addColumn() {
-  const newColName = `Col ${dataSheet.value.names.length + 1}`
+  const newColName = `Col ${dataSheet.value.columns.length + 1}`
   dataSheet.value = {
     ...dataSheet.value,
-    names: [...dataSheet.value.names, newColName],
-    values: dataSheet.value.values.map((row) => [...row, ''])
+    columns: [...dataSheet.value.columns, newColName],
+    rows: dataSheet.value.rows.map((row) => [...row, ''])
   }
 }
 </script>

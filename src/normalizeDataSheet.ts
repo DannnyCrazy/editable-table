@@ -8,8 +8,8 @@ export function isRowCompletelyEmpty(row: string[], columnCount: number) {
   return normalizeRowLength(row, columnCount).every((cell) => cell === '')
 }
 
-export function removeEmptyRows(values: string[][], columnCount: number) {
-  return values
+export function removeEmptyRows(rows: string[][], columnCount: number) {
+  return rows
     .map((row) => normalizeRowLength(row, columnCount))
     .filter((row) => !isRowCompletelyEmpty(row, columnCount))
 }
@@ -26,10 +26,10 @@ export function areRowMatrixesEqual(left: string[][], right: string[][]) {
 }
 
 export function sanitizeDataSheetRows(sheet: DataSheetJson): DataSheetJson {
-  const columnCount = sheet.names.length
+  const columnCount = sheet.columns.length
 
   return {
     ...sheet,
-    values: removeEmptyRows(sheet.values, columnCount)
+    rows: removeEmptyRows(sheet.rows, columnCount)
   }
 }

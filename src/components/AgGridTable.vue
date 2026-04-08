@@ -79,11 +79,11 @@ function buildColDefs(names: string[]): ColDef[] {
     headerComponent: EditableHeaderRenderer,
     headerComponentParams: {
       onRename: (oldName: string, newName: string) => {
-        const idx = model.value.names.indexOf(oldName)
+        const idx = model.value.columns.indexOf(oldName)
         if (idx === -1) return
-        const names = [...model.value.names]
+        const names = [...model.value.columns]
         names[idx] = newName
-        model.value = { ...model.value, names }
+        model.value = { ...model.value, columns: names }
         // Refresh column defs to update displayed header name
         columnDefs.value = buildColDefs(names)
       }
@@ -99,7 +99,7 @@ function readGridData(): string[][] {
   if (!gridApi) return []
   const rows: string[][] = []
   gridApi.forEachNode((node) => {
-    const row = model.value.names.map((_name, i) => String(node.data?.[`col_${i}`] ?? ''))
+    const row = model.value.columns.map((_name, i) => String(node.data?.[`col_${i}`] ?? ''))
     rows.push(row)
   })
   return rows
@@ -112,11 +112,11 @@ function onGridReady(event: GridReadyEvent) {
 }
 
 function onCellValueChanged(_event: CellValueChangedEvent) {
-  model.value = { ...model.value, values: readGridData() }
+  model.value = { ...model.value, rows: readGridData() }
 }
 
 function onDataChanged() {
-  model.value = { ...model.value, values: readGridData() }
+  model.value = { ...model.value, rows: readGridData() }
 }
 
 function onColumnMoved(event: ColumnMovedEvent) {
@@ -128,27 +128,27 @@ function onColumnMoved(event: ColumnMovedEvent) {
   // Build permutation: newColIds are "col_0", "col_1", etc. (original indices)
   const permutation = newColIds.map((id) => parseInt(id.replace('col_', ''), 10))
 
-  const oldNames = model.value.names
+  const oldNames = model.value.columns
   const newNames = permutation.map((idx) => oldNames[idx] ?? '')
-  const newValues = model.value.values.map((row) => permutation.map((idx) => row[idx] ?? ''))
+  const newValues = model.value.rows.map((row) => permutation.map((idx) => row[idx] ?? ''))
 
   // Rebuild colDefs to match new order (re-assign col_0..N to display order)
   const rebuildDefs = buildColDefs(newNames)
   columnDefs.value = rebuildDefs
 
-  model.value = { ...model.value, names: newNames, values: newValues }
+  model.value = { ...model.value, columns: newNames, rows: newValues }
 }
 
 // ── Sync model → grid ────────────────────────────────────────────────────────
 function refreshGrid() {
   const sanitizedSheet = sanitizeDataSheetRows(model.value)
-  if (!areRowMatrixesEqual(sanitizedSheet.values, model.value.values)) {
+  if (!areRowMatrixesEqual(sanitizedSheet.rows, model.value.rows)) {
     model.value = sanitizedSheet
     return
   }
 
-  columnDefs.value = buildColDefs(sanitizedSheet.names)
-  rowData.value = buildRowData(sanitizedSheet.names, sanitizedSheet.values)
+  columnDefs.value = buildColDefs(sanitizedSheet.columns)
+  rowData.value = buildRowData(sanitizedSheet.columns, sanitizedSheet.rows)
 }
 
 watch(

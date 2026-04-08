@@ -1,6 +1,6 @@
 export type DataSheetJson = {
   type: 'dataSheet'
   id: string
-  names: string[]
-  values: string[][]
+  columns: string[]
+  rows: string[][]
 }
